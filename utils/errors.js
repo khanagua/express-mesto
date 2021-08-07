@@ -1,6 +1,7 @@
 module.exports.ERROR_NAME = {
   validation: 'ValidationError',
   cast: 'CastError',
+  notValidId: 'NotValidId',
 };
 
 module.exports.ERROR_CODE = {

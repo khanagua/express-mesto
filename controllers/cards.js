@@ -24,14 +24,13 @@ const addCard = (req, res) => {
 // удаляет карточку по идентификатору
 const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
-      }
-      res.status(200).send(card);
-    })
+    .orFail(new Error(ERROR_NAME.notValidId))
+    .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
+        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
+      }
+      if (err.message === ERROR_NAME.notValidId) {
         res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
       }
       res.status(ERROR_CODE.serverError).send(defaultMessages);
@@ -45,14 +44,13 @@ const likeCard = (req, res) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .then((card) => {
-      if (!card) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
-      }
-      res.status(200).send(card);
-    })
+    .orFail(new Error(ERROR_NAME.notValidId))
+    .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
+        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
+      }
+      if (err.message === ERROR_NAME.notValidId) {
         res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
       }
       res.status(ERROR_CODE.serverError).send(defaultMessages);
@@ -66,14 +64,13 @@ const dislikeCard = (req, res) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .then((card) => {
-      if (!card) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
-      }
-      res.status(200).send(card);
-    })
+    .orFail(new Error(ERROR_NAME.notValidId))
+    .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
+        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
+      }
+      if (err.message === ERROR_NAME.notValidId) {
         res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
       }
       res.status(ERROR_CODE.serverError).send(defaultMessages);

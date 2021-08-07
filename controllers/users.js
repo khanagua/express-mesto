@@ -14,12 +14,16 @@ const getAllUsers = (req, res) => {
     .catch(() => res.status(ERROR_CODE.serverError).send(defaultMessages));
 };
 
-// возвращает всех пользователя по id
+// возвращает пользователя по id
 const getUser = (req, res) => {
   User.findById(req.params.userid)
+    .orFail(new Error(ERROR_NAME.notValidId))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
+        res.status(ERROR_CODE.badRequest).send({ message: 'Пользователь не найден' });
+      }
+      if (err.message === ERROR_NAME.notValidId) {
         res.status(ERROR_CODE.notFound).send({ message: 'Пользователь не найден' });
       }
       res.status(ERROR_CODE.serverError).send(defaultMessages);
@@ -47,17 +51,22 @@ const updateUser = (req, res) => {
     { name, about },
     options,
   )
-    .then((user) => {
-      if (!user) {
+    .orFail(new Error(ERROR_NAME.notValidId))
+    .then((user) => res.status(200).send(user))
+    .catch((err) => {
+      if (err.message === ERROR_NAME.notValidId) {
         res.status(ERROR_CODE.notFound).send({ message: 'Пользователь не найден' });
       }
-      res.status(200).send(user);
-    })
-    .catch((err) => {
-      if (err.name === ERROR_NAME.validation) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Переданы некорректные или неполные данные' });
+      switch (err.name) {
+        case ERROR_NAME.validation:
+          res.status(ERROR_CODE.badRequest).send({ message: 'Переданы некорректные или неполные данные' });
+          break;
+        case ERROR_NAME.cast:
+          res.status(ERROR_CODE.badRequest).send({ message: 'Пользователь не найден' });
+          break;
+        default:
+          res.status(ERROR_CODE.serverError).send(defaultMessages);
       }
-      res.status(ERROR_CODE.serverError).send(defaultMessages);
     });
 };
 
@@ -69,17 +78,22 @@ const updateAvatar = (req, res) => {
     { avatar },
     options,
   )
-    .then((user) => {
-      if (!user) {
+    .orFail(new Error(ERROR_NAME.notValidId))
+    .then((user) => res.status(200).send(user))
+    .catch((err) => {
+      if (err.message === ERROR_NAME.notValidId) {
         res.status(ERROR_CODE.notFound).send({ message: 'Пользователь не найден' });
       }
-      res.status(200).send(user);
-    })
-    .catch((err) => {
-      if (err.name === ERROR_NAME.validation) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Переданы некорректные данные' });
+      switch (err.name) {
+        case ERROR_NAME.validation:
+          res.status(ERROR_CODE.badRequest).send({ message: 'Переданы некорректные данные' });
+          break;
+        case ERROR_NAME.cast:
+          res.status(ERROR_CODE.badRequest).send({ message: 'Пользователь не найден' });
+          break;
+        default:
+          res.status(ERROR_CODE.serverError).send(defaultMessages);
       }
-      res.status(ERROR_CODE.serverError).send(defaultMessages);
     });
 };
 
