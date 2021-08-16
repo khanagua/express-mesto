@@ -1,44 +1,59 @@
 const Card = require('../models/card');
-const { ERROR_NAME, ERROR_CODE, defaultMessages } = require('../utils/errors');
+const { ERROR_NAME } = require('../errors/errors');
+const BadRequestError = require('../errors/bad-request-error');
+const NotFoundError = require('../errors/not-found-error');
+const ForbiddenError = require('../errors/forbidden-error');
 
 // возвращает все карточки
-const getAllCards = (req, res) => {
+const getAllCards = (req, res, next) => {
   Card.find({})
     .then((cards) => res.status(200).send(cards))
-    .catch(() => res.status(ERROR_CODE.serverError).send(defaultMessages));
+    .catch(next);
 };
 
 // создаёт карточку
-const addCard = (req, res) => {
+const addCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === ERROR_NAME.validation) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Переданы некорректные или неполные данные карточки' });
+        next(new BadRequestError('Переданы некорректные или неполные данные карточки'));
       }
-      res.status(ERROR_CODE.serverError).send(defaultMessages);
+      next(err);
     });
 };
 
 // удаляет карточку по идентификатору
-const deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
+const deleteCard = (req, res, next) => {
+  Card.findById(req.params.cardId)
     .orFail(new Error(ERROR_NAME.notValidId))
-    .then((card) => res.status(200).send(card))
+    .then((card) => {
+      if (card.owner.toString() === req.user._id.toString()) {
+        card.remove();
+        res.status(200).send({ message: 'Карточка удалена' });
+      }
+      return Promise.reject(new Error(ERROR_NAME.notOwnerCard));
+    })
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
+        next(new BadRequestError('Карточка не найдена'));
       }
-      if (err.message === ERROR_NAME.notValidId) {
-        res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
+      switch (err.message) {
+        case ERROR_NAME.notValidId:
+          next(new NotFoundError('Карточка не найдена'));
+          break;
+        case ERROR_NAME.notOwnerCard:
+          next(new ForbiddenError('Нельзя удалить чужую карточку'));
+          break;
+        default:
+          next(err);
       }
-      res.status(ERROR_CODE.serverError).send(defaultMessages);
     });
 };
 
 // ставит лайк карточке
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -48,17 +63,17 @@ const likeCard = (req, res) => {
     .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
+        next(new BadRequestError('Карточка не найдена'));
       }
       if (err.message === ERROR_NAME.notValidId) {
-        res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
+        next(new NotFoundError('Карточка не найдена'));
       }
-      res.status(ERROR_CODE.serverError).send(defaultMessages);
+      next(err);
     });
 };
 
 // снимает лайк с карточки
-const dislikeCard = (req, res) => {
+const dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -68,12 +83,12 @@ const dislikeCard = (req, res) => {
     .then((card) => res.status(200).send(card))
     .catch((err) => {
       if (err.name === ERROR_NAME.cast) {
-        res.status(ERROR_CODE.badRequest).send({ message: 'Карточка не найдена' });
+        next(new BadRequestError('Карточка не найдена'));
       }
       if (err.message === ERROR_NAME.notValidId) {
-        res.status(ERROR_CODE.notFound).send({ message: 'Карточка не найдена' });
+        next(new NotFoundError('Карточка не найдена'));
       }
-      res.status(ERROR_CODE.serverError).send(defaultMessages);
+      next(err);
     });
 };
 
