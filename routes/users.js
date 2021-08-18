@@ -1,6 +1,7 @@
 const { celebrate, Joi } = require('celebrate');
-
 const userRouter = require('express').Router();
+const { method } = require('../utils/method');
+
 const {
   getAllUsers,
   getUser,
@@ -15,7 +16,7 @@ userRouter.get( // возвращает пользователя по _id
   '/users/:userid',
   celebrate({
     params: Joi.object().keys({
-      userid: Joi.string().alphanum().length(24),
+      userid: Joi.string().hex().length(24),
     }),
   }),
   getUser,
@@ -33,7 +34,7 @@ userRouter.patch( // обновляет профиль
 userRouter.patch( // обновляет аватар
   '/users/me/avatar', celebrate({
     body: Joi.object().keys({
-      avatar: Joi.string().required(),
+      avatar: Joi.string().required().custom(method),
     }),
   }),
   updateAvatar,

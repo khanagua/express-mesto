@@ -53,7 +53,13 @@ const addUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then((user) => res.status(200).send(user))
+    .then((user) => res.status(200).send({
+      name: user.name,
+      about: user.about,
+      avatar: user.avatar,
+      _id: user._id,
+      email: user.email,
+    }))
     .catch((err) => {
       if (err.name === ERROR_NAME.validation) {
         next(new BadRequestError('Переданы некорректные или неполные данные пользователя'));
@@ -122,11 +128,12 @@ const updateAvatar = (req, res, next) => {
 // авторизация пользователя
 const login = (req, res, next) => {
   const { email, password } = req.body;
+  const { JWT_SECRET = 'secret-key' } = process.env;
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign(
         { _id: user._id },
-        'very-secret-key',
+        JWT_SECRET,
         { expiresIn: '7d' },
       );
       res.status(200).send({ token });
